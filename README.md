@@ -142,7 +142,7 @@ Focused managerial view with metrics per team.
 
 ## ⚙️ Assumptions & Notes
 
-- Dataset sourced from the [Kaggle “Human Resources Data Set”] link above. :contentReference[oaicite:1]{index=1}  
+- Dataset sourced from the [Kaggle “Human Resources Data Set”] link above.
 - Attrition is derived using `date_of_termination` (active employees have `NULL`).  
 - SQL scripts generate a clean star schema consumed by Python.  
 - Python exports both normalized BI tables and wide EDA-ready datasets.  
