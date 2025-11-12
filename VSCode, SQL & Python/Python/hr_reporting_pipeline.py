@@ -1,14 +1,21 @@
 """
-HR Attrition: EDA + Modeling + Power BI Export Pipeline
+===============================================================
+💼 HR Attrition: EDA + Modeling + Power BI Export Pipeline
 Author: Aïmane (Refactored by Gemini)
 Date: 2025 (Updated, Race Handling Fixed)
 
-Description:
-This script connects to PostgreSQL, loads the star schema, and processes data into:
-1. /showcase/ → Enriched, wide-table format for EDA and portfolio use.
-2. /powerbi/  → Clean, normalized star schema for BI (no 'Unknown' values).
+🧾 Description (for non-technical users):
+This script connects to the HR PostgreSQL database, cleans and enriches employee data,
+and then creates two main outputs:
+1. 📊 /showcase/  → A wide table for analysis and data exploration.
+2. 📈 /powerbi/   → Clean, structured datasets ready for Power BI dashboards.
+===============================================================
 """
 
+# =============================================================================
+# 📦 0. Import Libraries
+# =============================================================================
+# 💬 These packages handle data, charts, and database connections.
 import pandas as pd
 import numpy as np
 import psycopg2
@@ -18,12 +25,16 @@ from matplotlib.ticker import MaxNLocator
 import os
 from datetime import datetime
 
+
 # =============================================================================
-# ✅ 1. Database Connection
+# ✅ 1. Connect to the Database
 # =============================================================================
+# 💬 We define the database connection details below.
+#    These credentials let Python access the HR tables in PostgreSQL.
+# ⚠️ In production, passwords should be stored securely (e.g., environment variables).
 DB_NAME = "fdb"
 DB_USER = "postgres"
-DB_PASS = "Aymaneb595."  # ⚠️ Use env vars in production
+DB_PASS = "Aymaneb595."
 DB_HOST = "localhost"
 DB_PORT = "5432"
 
@@ -34,9 +45,12 @@ except Exception as e:
     print(f"❌ Database connection failed: {e}")
     exit()
 
+
 # =============================================================================
-# ✅ 2. Load Raw Tables
+# ✅ 2. Load the Raw Tables from PostgreSQL
 # =============================================================================
+# 💬 This function reads tables from the HR database into pandas DataFrames.
+#    If a table is missing or fails to load, it safely returns an empty table.
 def load_table(table_name):
     """Safely loads a table from the connected database."""
     print(f"📥 Loading: {table_name}...")
@@ -46,6 +60,7 @@ def load_table(table_name):
         print(f"❌ Failed to load {table_name}: {e}")
         return pd.DataFrame()
 
+# 💬 Load all relevant HR tables created by the SQL pipeline.
 fact = load_table("hr.fact_employee_clean")
 dim_dept_raw = load_table("hr.dim_department")
 dim_pos_raw = load_table("hr.dim_position")
@@ -56,9 +71,13 @@ if fact.empty:
     print("❌ Fact table is empty. Pipeline cannot continue.")
     exit()
 
+
 # =============================================================================
-# ✅ 3. Create Power BI Dimension Tables (with Numeric IDs)
+# ✅ 3. Prepare Power BI Dimension Tables (with Numeric IDs)
 # =============================================================================
+# 💬 Power BI prefers numeric IDs instead of text keys (like department names).
+#    Here we assign simple numeric IDs for each dimension.
+
 dim_departments = dim_dept_raw[['department']].drop_duplicates().reset_index(drop=True)
 dim_departments['department_id'] = dim_departments.index + 1
 dim_departments = dim_departments.rename(columns={'department': 'department_name'})
@@ -77,9 +96,13 @@ dim_race = dim_race_raw[['race_name']].drop_duplicates().reset_index(drop=True)
 dim_race['race_id'] = dim_race.index + 1
 print(f"Created dim_race with {len(dim_race)} rows")
 
+
 # =============================================================================
-# ✅ 4. Build Enriched Analytics Table (EDA/Showcase)
+# ✅ 4. Build an Enriched Analytics Table (EDA / Showcase)
 # =============================================================================
+# 💬 We combine (“join”) the employee fact table with dimension tables.
+#    This creates one large, rich dataset for analysis or modeling.
+
 df_analytics = (
     fact
     .merge(dim_departments, left_on="department", right_on="department_name", how="left")
@@ -90,9 +113,16 @@ df_analytics = (
 print("✅ Merged analytics table created")
 print(f"💡 Columns available: {', '.join(df_analytics.columns.to_list()[:10])}...")
 
+
 # =============================================================================
-# ✅ 5. Feature Engineering
+# ✅ 5. Feature Engineering (Creating New Insights)
 # =============================================================================
+# 💬 Here we calculate new useful columns:
+#    - tenure (days worked)
+#    - event date (hire or termination)
+#    - month & year for trend analysis
+#    - whether an employee left (attrition flag)
+
 date_cols = ["date_of_birth", "date_of_hire", "date_of_termination"]
 for col in date_cols:
     df_analytics[col] = pd.to_datetime(df_analytics[col], errors='coerce')
@@ -111,9 +141,15 @@ df_analytics["tenure_bucket"] = pd.cut(
 df_analytics["is_terminated"] = df_analytics["attrition_flag"].astype(int)
 print("✅ Feature engineering complete")
 
+
 # =============================================================================
-# ✅ 6. Org-Level Monthly Attrition Summary
+# ✅ 6. Organizational Attrition Summary (Monthly)
 # =============================================================================
+# 💬 This summarizes attrition per month across the organization:
+#    - How many employees started
+#    - How many left
+#    - Monthly attrition % and 3-month rolling average
+
 monthly_summary = (
     df_analytics.groupby(["event_year", "event_month"])
     .agg(
@@ -136,21 +172,30 @@ monthly_summary["attrition_rolling3m_pct"] = (
 )
 print("✅ Monthly org-level attrition fact table calculated")
 
-# =============================================================================
-# ✅ 7. Showcase Dataset Export
-# =============================================================================
-os.makedirs("output/showcase", exist_ok=True)
 
+# =============================================================================
+# ✅ 7. Export Showcase (EDA) Datasets
+# =============================================================================
+# 💬 We save ready-to-use CSVs for analysis or presentations.
+#    These are the detailed datasets (not yet cleaned for Power BI).
+
+os.makedirs("output/showcase", exist_ok=True)
 df_analytics.to_csv("output/showcase/hr_analytics_showcase.csv", index=False)
 monthly_summary.to_csv("output/showcase/monthly_summary_showcase.csv", index=False)
 print("✅ Showcase datasets exported")
 
+
 # =============================================================================
-# ✅ 8. Power BI Datasets (Star Schema)
+# ✅ 8. Export Power BI Datasets (Clean Star Schema)
 # =============================================================================
+# 💬 We now create final cleaned tables for Power BI:
+#    - Clean dimension tables (no “Unknown” values)
+#    - Fact table with proper foreign key IDs
+#    - Monthly attrition summary fact
+
 os.makedirs("output/powerbi", exist_ok=True)
 
-# --- Clean dimensions (drop Unknown) ---
+# --- Clean dimensions ---
 dim_departments_clean = dim_departments.replace("Unknown", np.nan).dropna()
 dim_positions_clean = dim_positions.replace("Unknown", np.nan).dropna()
 dim_managers_clean = dim_managers.replace("Unknown", np.nan).dropna()
@@ -162,7 +207,8 @@ dim_managers_clean.to_csv("output/powerbi/dim_managers.csv", index=False)
 dim_race_clean.to_csv("output/powerbi/dim_race.csv", index=False)
 print("✅ Clean Dimension tables exported")
 
-# --- FACT 1: HR Clean ---
+
+# --- Clean fact table ---
 fact_hr_final = df_analytics.drop(columns=[
     'department',
     'position',
@@ -174,12 +220,12 @@ fact_hr_final = df_analytics.drop(columns=[
 
 fact_hr_clean = fact_hr_final.replace("Unknown", np.nan)
 
-# ✅ Clean race: drop rows where race is missing or 'Unknown'
+# 💬 Remove employees with missing or invalid race values
 if 'racedesc' in fact_hr_clean.columns:
     fact_hr_clean['racedesc'] = fact_hr_clean['racedesc'].replace("Unknown", np.nan)
     fact_hr_clean = fact_hr_clean.dropna(subset=['racedesc'])
 
-# Drop nulls in critical columns (excluding race since we handled it above)
+# 💬 Drop any rows missing key information like ID, department, position, etc.
 critical_cols = [
     'employee_id',
     'department_id',
@@ -196,7 +242,8 @@ print(f"✅ Final Power BI fact table rows: {len(fact_hr_clean)}")
 fact_hr_clean.to_csv("output/powerbi/fact_hr_clean.csv", index=False)
 print("✅ Fact table 'fact_hr_clean.csv' exported")
 
-# --- FACT 2: Monthly Attrition ---
+
+# --- Monthly attrition summary fact ---
 fact_attrition_columns = [
     'event_month',
     'employees_start',
@@ -212,9 +259,13 @@ fact_attrition_clean = monthly_summary[fact_attrition_columns].rename(
 fact_attrition_clean.to_csv("output/powerbi/fact_attrition_monthly.csv", index=False)
 print("✅ Fact table 'fact_attrition_monthly.csv' exported")
 
+
 # =============================================================================
-# ✅ 9. Plot Org-Level Trend
+# ✅ 9. Plot Monthly Attrition Trend
 # =============================================================================
+# 💬 This creates and saves a line chart showing monthly attrition trends
+#    and the 3-month rolling average — useful for HR presentations.
+
 plot_data = monthly_summary.sort_values(by="event_month")
 plt.figure(figsize=(14, 7))
 ax = plt.gca()
@@ -241,9 +292,12 @@ plt.tight_layout()
 plt.savefig("output/showcase/org_attrition_trend.png")
 print("📊 Chart saved: output/showcase/org_attrition_trend.png")
 
+
 # =============================================================================
-# ✅ 10. Final Output
+# ✅ 10. Final Output Summary
 # =============================================================================
+# 💬 Everything is now exported. The pipeline is complete and ready for use in BI dashboards.
+
 print("\n✅ HR Attrition Pipeline Completed Successfully!")
 print("✅ All datasets exported to /output/showcase/ and /output/powerbi/")
 print("💡 Power BI Relationships:")
