@@ -22,13 +22,13 @@ The project revolves around two interactive dashboard pages:
 ---
 
 🔗 **SQL ETL Script:**
-[View ETL & Schema Creation (hr_pipeline.sql)](https://github.com/aymaneben595/YOUR-REPO/blob/main/hr_pipeline.sql)
+[View ETL & Schema Creation (hr_data_pipeline.sql)](https://github.com/aymaneben595/Fifth-Project/blob/688230383bbdfffb39eeec0951069618a5c42c0e/VSCode%2C%20SQL%20%26%20Python/SQL/hr_data_pipeline.sql)
 
 🐍 **Python Processing Script:**
-[View Processing & BI Export (hr_pipeline.py)](https://github.com/aymaneben595/YOUR-REPO/blob/main/hr_pipeline.py)
+[View Processing & BI Export (hr_reporting_pipeline.py)](https://github.com/aymaneben595/Fifth-Project/blob/688230383bbdfffb39eeec0951069618a5c42c0e/VSCode%2C%20SQL%20%26%20Python/Python/hr_reporting_pipeline.py)
 
 📊 **Power BI Dashboard:**
-[⬇️ Download Power BI Report (HR Analytics.pbix)](https://drive.google.com/file/d/YOUR-DRIVE-LINK/view)
+[⬇️ Download Power BI Report (HR Analytics.pbix)](https://github.com/aymaneben595/Fifth-Project/raw/688230383bbdfffb39eeec0951069618a5c42c0e/Power%20Bi/Dashboard.pbix)
 
 ---
 
