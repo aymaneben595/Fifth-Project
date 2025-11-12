@@ -22,7 +22,7 @@ The project revolves around two interactive dashboard pages:
 ---
 
 🔗 **Dataset Source:**  
-[Human Resources Data Set – Kaggle](https://www.kaggle.com/datasets/rhuebner/human-resources-data-set?utm_source=chatgpt.com) :contentReference[oaicite:0]{index=0}
+[Human Resources Data Set – Kaggle](https://www.kaggle.com/datasets/rhuebner/human-resources-data-set?utm_source=chatgpt.com)
 
 🔗 **SQL ETL Script:**  
 [View ETL & Schema Creation (hr_data_pipeline.sql)](https://github.com/aymaneben595/Fifth-Project/blob/688230383bbdfffb39eeec0951069618a5c42c0e/VSCode%2C%20SQL%20%26%20Python/SQL/hr_data_pipeline.sql)
